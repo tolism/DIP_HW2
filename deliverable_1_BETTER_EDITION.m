@@ -1,33 +1,49 @@
 % Load image
-I = imread('im2.jpg');
-figure
-imshow(I)
+I = imread('im3.jpg');
+%figure
+%imshow(I)
 
 % Convert to grayscale and scale to [0,1]
 I = double(rgb2gray(I));
 I = I(1:8:end,1:8:end);
 
 %Skip the borders for possible scanning errors
-I=I(5:end-5,5:end-5);
+%I=I(5:end-5,5:end-5);
 
-%I = medfilt2(I);
+I = medfilt2(I);
+%I = imsharpen(I);
 %I = imsharpen(I);
 % Gaussian filter
-%I = imgaussfilt(I, 8);
+%I = imgaussfilt(I, 1);
+
+
 
 % Edge filter - use edge()
 BW = edge(I, 'Sobel');
-figure
-imshow(BW)
+%figure
+%imshow(BW)
 
-[H,L,res] = myHoughTransform(BW, 2, pi/180 , 5);
+thetaRes = pi/360;
+rhoRes = 0.5; 
+[H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 15);
+L(:,1) = 8.*L(:,1);
+I = imread('im2.jpg');
+
+d = sqrt(size(I,1)^2 + size(I,2)^2);
+rho = -d:rhoRes:d;
+theBin = -90:thetaRes:90;
+
+
+%drawHoughLines(I,L,rho,theBin);
 
 
 
 function [H,L,res] = myHoughTransform(img_binary, Drho, Drtheta , n )
 
 I= img_binary;
-theBin = -90:89;
+% Rads to degrees
+Drtheta = Drtheta * 180/pi;
+theBin = -90:Drtheta:90;
 % Find the maximum possible d: diagnol length of the image
 d = sqrt(size(I,1)^2 + size(I,2)^2);
 % Define step size for rhoBin matrix
@@ -39,8 +55,11 @@ rhoBin = 0:Drho:ceil(2*d);
 % Initiate hough matrix
 H = zeros(length(rhoBin),length(theBin));
 
-% Below code if self explanatory
+
+
+wb = waitbar(0, 'Computing the Hough Transform');
 for i = 1:size(I,1)
+    waitbar(i/size(I,1), wb);
     for j = 1:size(I,2)
         if(I(i,j))
             for k = 1:length(theBin) 
@@ -52,17 +71,18 @@ for i = 1:size(I,1)
     end
 end
 
+close(wb);
  
 
-imshow(H,[],...
-       'XData',theBin,...
-       'YData',rho,...
-       'InitialMagnification','fit');
-xlabel('\theta (degrees)')
-ylabel('\rho')
-axis on
-axis normal 
-hold on
+% imshow(H,[],...
+%        'XData',theBin,...
+%        'YData',rho,...
+%        'InitialMagnification','fit');
+% xlabel('\theta (degrees)')
+% ylabel('\rho')
+% axis on
+% axis normal 
+% hold on
 
 
 peaks = myHoughPeaks(H,n);
@@ -70,13 +90,17 @@ peaks = myHoughPeaks(H,n);
 
 L = peaks ;
 %Thresholding the lines next to each other
-linesThres = 20;
+rhoThres = 3;
+thetaThres = 2;
+
  for i = 1 : length(peaks)
      for j = 1 : length(peaks)
-          if (abs(L(j,1) - L(i,1)) < linesThres )  && ( abs(L(j,1) - L(i,1)) ~= 0 ) 
+          if (abs(L(j,1) - L(i,1)) < rhoThres )  && ( abs(L(j,1) - L(i,1)) ~= 0 ) 
           L(i,1) = 0;
-         else
-        continue;
+          elseif (abs(L(j,2) - L(i,2)) < thetaThres )  && ( abs(L(j,1) - L(i,1)) < rhoThres )   && ( abs(L(j,2) - L(i,2)) ~= 0 ) 
+          L(i,1) = 0;
+          else
+              continue;
           end
      end
  end
@@ -87,9 +111,9 @@ res = [];
 
 
 
-x = theBin(L(:,2));
-y = rho(L(:,1));
-plot(x,y,'s','color','white');
+% x = theBin(L(:,2));
+% y = rho(L(:,1));
+% plot(x,y,'s','color','white');
 
 
 drawHoughLines(I,L,rho,theBin);
@@ -126,12 +150,6 @@ end
 
 
 function peaks = myHoughPeaks(H,numPeaks)
-
-
-
-%%%%% NA VALW THRESHOLD STHN PIPA 
-
-
 
 % Copy H into HCopy
     HCopy = H;
