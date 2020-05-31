@@ -1,32 +1,31 @@
 % Load image
-I = imread('im3.jpg');
+I = imread('im2.jpg');
 %figure
 %imshow(I)
 
 % Convert to grayscale and scale to [0,1]
-I = double(rgb2gray(I));
-I = I(1:8:end,1:8:end);
+I = (rgb2gray(I));
+I=imresize(I,0.2);
 
 %Skip the borders for possible scanning errors
 %I=I(5:end-5,5:end-5);
 
-I = medfilt2(I);
+%I = medfilt2(I);
 %I = imsharpen(I);
 %I = imsharpen(I);
 % Gaussian filter
-%I = imgaussfilt(I, 1);
+I = imgaussfilt(I, 3);
 
 
 
 % Edge filter - use edge()
-BW = edge(I, 'Sobel');
-%figure
-%imshow(BW)
+BW =  edge(I,'Sobel'); 
+figure
+imshow(BW)
 
 thetaRes = pi/360;
 rhoRes = 0.5; 
-[H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 15);
-L(:,1) = 8.*L(:,1);
+[H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 30);
 I = imread('im2.jpg');
 
 d = sqrt(size(I,1)^2 + size(I,2)^2);
@@ -74,15 +73,15 @@ end
 close(wb);
  
 
-% imshow(H,[],...
-%        'XData',theBin,...
-%        'YData',rho,...
-%        'InitialMagnification','fit');
-% xlabel('\theta (degrees)')
-% ylabel('\rho')
-% axis on
-% axis normal 
-% hold on
+ imshow(H,[],...
+        'XData',theBin,...
+        'YData',rho,...
+        'InitialMagnification','fit');
+ xlabel('\theta (degrees)')
+ ylabel('\rho')
+ axis on
+ axis normal 
+ hold on
 
 
 peaks = myHoughPeaks(H,n);
@@ -90,22 +89,34 @@ peaks = myHoughPeaks(H,n);
 
 L = peaks ;
 %Thresholding the lines next to each other
-rhoThres = 3;
-thetaThres = 2;
+rhoThres = 15;
+thetaThres = 5;
+correctPeaks = 0 ; 
+totalIter = 0 ; 
 
- for i = 1 : length(peaks)
-     for j = 1 : length(peaks)
-          if (abs(L(j,1) - L(i,1)) < rhoThres )  && ( abs(L(j,1) - L(i,1)) ~= 0 ) 
-          L(i,1) = 0;
-          elseif (abs(L(j,2) - L(i,2)) < thetaThres )  && ( abs(L(j,1) - L(i,1)) < rhoThres )   && ( abs(L(j,2) - L(i,2)) ~= 0 ) 
-          L(i,1) = 0;
-          else
-              continue;
-          end
-     end
- end
 
+    for i = 1 : length(peaks)
+         for j = 1 : length(peaks)
+            totalIter = totalIter + 1 ;  
+            if (abs(L(j,1) - L(i,1)) < rhoThres )  && ( abs(L(j,1) - L(i,1)) ~= 0 ) 
+            L(i,1) = 0;
+            elseif (abs(L(j,2) - L(i,2)) < thetaThres )  && ( abs(L(j,1) - L(i,1)) < rhoThres )   && ( abs(L(j,2) - L(i,2)) ~= 0 ) 
+            L(i,1) = 0;
+            else
+               correctPeaks = correctPeaks + 1 ;  
+               if correctPeaks == n
+                   break;
+               end
+               continue;
+           end
+         end
+              if correctPeaks == n 
+                  break;
+              end
+    end
+totalIter       
 L(L(:, 1)== 0, :) = [] ; 
+L(totalIter : end , : ) = [] ;
 L ;
 res = [];
 
@@ -142,7 +153,7 @@ for i = 1:size(peaks,1)
         y1 = (rhoTemp - x1*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
         y2 = (rhoTemp - x2*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
     end
-    plot([x1,x2],[y1,y2],'b','LineWidth',2);
+    plot([x1,x2],[y1,y2],'r','LineWidth',2);
     title('Image with hough lines');
 end
 
@@ -151,6 +162,7 @@ end
 
 function peaks = myHoughPeaks(H,numPeaks)
 
+   numPeaks = numPeaks * numPeaks 
 % Copy H into HCopy
     HCopy = H;
     %Initiate peaks matrix
@@ -158,8 +170,8 @@ function peaks = myHoughPeaks(H,numPeaks)
     
     numP = 0;
     %Set a peak threshold
-    threshold = 0.*max(H(:));
-    previousMax = 0;
+    threshold = 0.02*max(H(:));
+    
    while(numP<numPeaks)
        if(threshold<=max(HCopy(:)))
            numP = numP + 1;
