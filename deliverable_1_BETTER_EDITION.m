@@ -1,5 +1,5 @@
 % Load image
-I = imread('im2.jpg');
+I = imread('im5.jpg');
 %figure
 %imshow(I)
 
@@ -14,7 +14,7 @@ I=imresize(I,0.2);
 %I = imsharpen(I);
 %I = imsharpen(I);
 % Gaussian filter
-I = imgaussfilt(I, 3);
+I = imgaussfilt(I, 4);
 
 
 
@@ -25,8 +25,8 @@ imshow(BW)
 
 thetaRes = pi/360;
 rhoRes = 0.5; 
-[H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 30);
-I = imread('im2.jpg');
+[H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 14);
+I = imread('im4.jpg');
 
 d = sqrt(size(I,1)^2 + size(I,2)^2);
 rho = -d:rhoRes:d;
@@ -83,20 +83,24 @@ close(wb);
  axis normal 
  hold on
 
+ 
+ 
+
 
 peaks = myHoughPeaks(H,n);
 
 
 L = peaks ;
 %Thresholding the lines next to each other
-rhoThres = 15;
-thetaThres = 5;
+rhoThres = 0.008*max(rho(:))
+thetaThres = 0.03*max(theBin(:))
+
 correctPeaks = 0 ; 
 totalIter = 0 ; 
 
 
     for i = 1 : length(peaks)
-         for j = 1 : length(peaks)
+         for j = 1 : i
             totalIter = totalIter + 1 ;  
             if (abs(L(j,1) - L(i,1)) < rhoThres )  && ( abs(L(j,1) - L(i,1)) ~= 0 ) 
             L(i,1) = 0;
@@ -109,26 +113,24 @@ totalIter = 0 ;
                end
                continue;
            end
-         end
-              if correctPeaks == n 
-                  break;
-              end
+         end       
     end
 totalIter       
 L(L(:, 1)== 0, :) = [] ; 
-L(totalIter : end , : ) = [] ;
-L ;
+%L(totalIter : end , : ) = [] ;
+length(L)
+ L(n+1 : end , : ) = [] ;
 res = [];
 
 
 
-% x = theBin(L(:,2));
-% y = rho(L(:,1));
-% plot(x,y,'s','color','white');
+ x = theBin(L(:,2));
+ y = rho(L(:,1));
+ plot(x,y,'s','color','white');
 
 
 drawHoughLines(I,L,rho,theBin);
-
+saveas(gcf,'test.png')
 
 end
 
@@ -170,7 +172,7 @@ function peaks = myHoughPeaks(H,numPeaks)
     
     numP = 0;
     %Set a peak threshold
-    threshold = 0.02*max(H(:));
+    threshold = 0.*max(H(:));
     
    while(numP<numPeaks)
        if(threshold<=max(HCopy(:)))
