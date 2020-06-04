@@ -20,81 +20,114 @@ imshow(BW)
 thetaRes = pi/180;
 rhoRes = 1; 
 [H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 12);
-I = imread('im2.jpg');
+%I = imread('im2.jpg');
 
-d = sqrt(size(I,1)^2 + size(I,2)^2);
+d = sqrt(size(BW,1)^2 + size(BW,2)^2);
+
 rho = -d:rhoRes:d;
-theBin = -90:thetaRes:90;
+Drtheta = thetaRes * 180/pi;
+theBin = -90:Drtheta:90;
 
-pointsArray = [] ;
 
-for i = 1:size(L,1)
-    rhoTemp = rho(L(i,1));
-    theTemp = theBin(L(i,2));
-    if theTemp == 0
-        x1 = rhoTemp;
-        x2 = rhoTemp;
-        y1 = 1;
-        y2 = size(BW,1);
-    else
-        x1 = 1;
-        x2 = size(BW,2);
-        y1 = (rhoTemp - x1*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
-        y2 = (rhoTemp - x2*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
-    end
-    r = [x1 x2 y1 y2];
-    pointsArray = [pointsArray ; r ]; 
-end
-pointsArray 
+
 
 %drawHoughLines(I,L,rho,theBin);
-saveas(gcf,'test.png')
+%saveas(gcf,'test.png')
 
 %I = imread('test.png');
 %I = rgb2gray(I);
 corners = myDetectHarrisFeatures( BW);
 lineCorn = [];
+pointsPerLine = zeros(size(L,1),1) ;
 
-for i = 1 : length(pointsArray)
-    for j = 1 : length(corners)
-        R = IsPointWithinLine(pointsArray(i,1), pointsArray(i,3), pointsArray(i,2), pointsArray(i,4), corners(j,1), corners(j,2));
-        if R
-            c = [corners(j,1) corners(j,2) ];
-            lineCorn = [lineCorn c ] 
-        end
-           
-            
-    end
-end
-        
-% linesEq = zeros(length(pointsArray),1);
-% slope = zeros(length(pointsArray) , 1);
-% for i = 1 : length(pointsArray)
-%     if ( pointsArray(i , 2  ) - pointsArray(i,1 )) ~= 0
-%          slope(i) =( pointsArray(i,4 )  - pointsArray(i,3 ) )/( pointsArray(i , 2  ) - pointsArray(i,1 ));
-%     
-%     else
-%         slope(i) = 0;
-%         display("Einai katheta to solve ");
-%     end
-%     for j = 1 : length(corners)
-%         g = -corners(j,2) + slope(i)*(corners(j,1) - pointsArray(i,1 ) ) + pointsArray(i,3 ) ;
-%         if g == 0 
-%             c = [corners(j,1) corners(j,2) ];
-%             lineCorn = [lineCorn c ] ;
-%         end
-%     end
-%       
-%       
-%     
-% end
-%         
+
+ for  i = 1:size(L,1)
+     for j = 1 : size(corners,1)
+         rhoTemp = rho(L(i,1));
+         theTemp = theBin(L(i,2));
+         
+         k =  -rhoTemp + corners(j,2)*cos(theTemp*pi/180)  + corners(j,1) *sin(theTemp*pi/180);
      
+         Limit = 100 * eps(max(abs([rhoTemp,corners(j,1),corners(j,2),theTemp])));
+         if floor(abs(k)) < Limit
+             pointsPerLine(i) = pointsPerLine(i) + 1 ;
+             c = [corners(j,1) corners(j,2) ];
+             lineCorn = [lineCorn; c ] ;
+             
+         end
+     end
+ end
+ size(lineCorn);
+ 
+ CornerLines = L;
+ [rows,cols] = find(pointsPerLine <= 0.3*max(pointsPerLine(:)));
+ %To find which lines contain corners
+ CornerLines(rows(:),cols(:)) = 0;
+ CornerLines(CornerLines(:, 1)== 0, :) = [] ; 
+ 
+ drawHoughLines(BW,CornerLines,rho,theBin);
+ %We need to calculate possible rectangular from lines 
+ 
+ areParallel =  zeros(size(CornerLines,1) , size(CornerLines,1)) ;
+ areVertical =  zeros(size(CornerLines,1) , size(CornerLines,1)) ;
+ 
+ %Find the combinations of the Vertical and Parallel lines
+ for i = 1 : length(CornerLines)
+     for j = 1 : length(CornerLines)
+         %Parallel Check
+         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j 
+             areParallel(i,j) = 1;
+         end
+         %Vertical Check
+         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 92 &&  abs(CornerLines(i,2) - CornerLines(j,2)) > 88 && i ~= j 
+             areVertical(i,j) = 1;
+         end
+     end
+ end
+ 
+ parallelCoup = [];
+ verticalCoup = [];
+ for i = 1 : length(CornerLines)
+     for j = 1 : length(CornerLines)
+         if areParallel(i,j) > 0 && i < j 
+             c = [i j];
+             parallelCoup = [ parallelCoup ; c ];
+         end
+         
+         if areVertical(i,j) > 0  %&& i < j 
+             c = [i j];
+             verticalCoup = [verticalCoup ;c];
+         end
+         
+     end
+ end
+ squareLines = [];
 
+ 
+ for i = 1 : length(parallelCoup)
+     val1 = isPar2( parallelCoup(i,1) , verticalCoup);
+     val2 = isPar2( parallelCoup(i,2) , verticalCoup);
+     A = ismember(val1,val2)
+     iters = length(val1)/2;
+     for j = 1 : iters
+         a = [ parallelCoup(i,1) parallelCoup(i,2) val1(ceil((j+1)/2)) val1(ceil((j+2)/2))];
+         squareLines = [squareLines ; a ] ;
+         end
+ end
+     
+        
+     
+           
+     
 figure
 imshow(BW) 
 hold on 
-plot(corners(:,1) , corners(:,2) , 'rs' );
+plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
+
+
+
+
+
 
 function R = IsPointWithinLine(x1, y1, x2, y2, x3, y3)
 % Line equation: y = m*x + b;
@@ -109,6 +142,18 @@ else
 end
 end
 
+function val = isPar2(line2Check , verticalArray)
+val = [];
+for i = 1: length(verticalArray)
+    if line2Check == verticalArray(i,1)
+        temp = verticalArray(i,2);
+        val = [val ; temp];
+    end
+end
+
+
+end
+
 function flag = isLocalMax(patch)
     pCenter = (size(patch,1)+1)/2;
      [rows,cols] = find(patch == max(patch(:)));
@@ -121,12 +166,13 @@ function flag = isLocalMax(patch)
      end
 end
 
-
 function corners = myDetectHarrisFeatures(I)
 
-
+   %The s of the gaussian
    sigma = 1; 
+   %Implement the filter
    smoothKernel = fspecial('gaussian',max(1,fix(6*sigma)), sigma);
+   %Kerner masks for the gradients 
    kerHor = [1 1 1;0 0 0;-1 -1 -1];
    kerVer = [1 0 -1;0 0 0;1 0 -1];
    
@@ -171,12 +217,9 @@ function corners = myDetectHarrisFeatures(I)
    [rows,cols] = find(RNonMax == 1);
    
   
-   corners = [cols,rows]; 
+    corners = [rows,cols]; 
     size(corners)
 end 
-
-
-
 
 
 function [H,L,res] = myHoughTransform(img_binary, Drho, Drtheta , n )
@@ -225,7 +268,6 @@ close(wb);
  axis normal 
  hold on
 
- 
  
 
 
@@ -297,10 +339,11 @@ for i = 1:size(peaks,1)
         y1 = (rhoTemp - x1*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
         y2 = (rhoTemp - x2*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
     end
-    %plot([x1,x2],[y1,y2],'r','LineWidth',2);
-    scatter([x1,x2],[y1,y2],'*');
+    plot([x1,x2],[y1,y2],'r','LineWidth',2);
+    %scatter([x1,x2],[y1,y2],'*');
     title('Image with hough lines');
 end
+hold on;
 
 end
 
