@@ -1,14 +1,14 @@
 % Load image
 I = imread('im2.jpg');
-%figure
-%imshow(I)
+figure
+imshow(I)
 
 % Convert to grayscale and scale to [0,1]
 I = (rgb2gray(I));
 I=imresize(I,0.2);
 
 % Gaussian filter
-I = imgaussfilt(I, 4.5);
+I = imgaussfilt(I, 4.6);
 
 
 
@@ -39,9 +39,15 @@ theBin = -90:Drtheta:90;
 corners = myDetectHarrisFeatures( BW);
 lineCorn = [];
 pointsPerLine = zeros(size(L,1),1) ;
+Corners2Line = [];
 
+x = [];
+y = [];
+linesArray = [];
+p = [];
 
  for  i = 1:size(L,1)
+    
      for j = 1 : size(corners,1)
          rhoTemp = rho(L(i,1));
          theTemp = theBin(L(i,2));
@@ -52,21 +58,40 @@ pointsPerLine = zeros(size(L,1),1) ;
          if floor(abs(k)) < Limit
              pointsPerLine(i) = pointsPerLine(i) + 1 ;
              c = [corners(j,1) corners(j,2) ];
+    %         x = [x corners(j,1) ];
+     %        y = [y corners(j,2) ];
              lineCorn = [lineCorn; c ] ;
-             
-         end
+         end    
      end
+    % [p, S, mu] = polyfit(y , x , 1 );
+     %    linesArray = [ linesArray ; p] ;
+      %   x =[];
+       %  y = [];
+        % p1 = [];
+     
  end
+ %linesArray(isnan(linesArray(:, 1)), :) = [] ; 
+ 
  size(lineCorn);
  
  CornerLines = L;
- [rows,cols] = find(pointsPerLine <= 0.3*max(pointsPerLine(:)));
+ [rows,cols] = find(pointsPerLine <= 22);
  %To find which lines contain corners
  CornerLines(rows(:),cols(:)) = 0;
  CornerLines(CornerLines(:, 1)== 0, :) = [] ; 
+
  
- drawHoughLines(BW,CornerLines,rho,theBin);
- %We need to calculate possible rectangular from lines 
+ %%%%%%%%%%%% CORNERLINES ==  r , è of the lines that pass through corners
+ %%%%%%%%%%%% LINECORN == The cords of the corner that fit lines
+% for i = 1 : length(CornerLines)
+%     k = [CornerLines(i,1) CornerLines(i,2) ] ;
+%     drawHoughLines(BW,k,rho,theBin);
+% end
+
+
+
+
+        
  
  areParallel =  zeros(size(CornerLines,1) , size(CornerLines,1)) ;
  areVertical =  zeros(size(CornerLines,1) , size(CornerLines,1)) ;
@@ -75,55 +100,116 @@ pointsPerLine = zeros(size(L,1),1) ;
  for i = 1 : length(CornerLines)
      for j = 1 : length(CornerLines)
          %Parallel Check
-         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j 
+         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j
              areParallel(i,j) = 1;
+        
          end
-         %Vertical Check
-         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 92 &&  abs(CornerLines(i,2) - CornerLines(j,2)) > 88 && i ~= j 
+          if  abs(CornerLines(i,2) - CornerLines(j,2)) < 92  &&  abs(CornerLines(i,2) - CornerLines(j,2)) > 88  && i ~= j
              areVertical(i,j) = 1;
+        
          end
      end
  end
  
+ %Isws thn kanw kai auth thn maska me plires diastaseis kai pairnw meta
  parallelCoup = [];
- verticalCoup = [];
+ %Find the Parallel Lines
  for i = 1 : length(CornerLines)
      for j = 1 : length(CornerLines)
          if areParallel(i,j) > 0 && i < j 
              c = [i j];
              parallelCoup = [ parallelCoup ; c ];
-         end
-         
-         if areVertical(i,j) > 0  %&& i < j 
-             c = [i j];
-             verticalCoup = [verticalCoup ;c];
-         end
-         
+         end       
      end
  end
- squareLines = [];
-
  
+ verticalCoup = zeros(length(parallelCoup) , length(CornerLines)) ;
+%Find the vertical lines to the parallel's that we calculated
  for i = 1 : length(parallelCoup)
-     val1 = isPar2( parallelCoup(i,1) , verticalCoup);
-     val2 = isPar2( parallelCoup(i,2) , verticalCoup);
-     A = ismember(val1,val2)
-     iters = length(val1)/2;
-     for j = 1 : iters
-         a = [ parallelCoup(i,1) parallelCoup(i,2) val1(ceil((j+1)/2)) val1(ceil((j+2)/2))];
-         squareLines = [squareLines ; a ] ;
-         end
+     for j = 1 : length(CornerLines)
+         if areVertical(parallelCoup(i,1) , j) > 0  && i ~= j 
+            verticalCoup(i,j) = j;
+         end    
+     end
  end
-     
+squareLines = [];
+ %Find the pair of parallel / vertical that make a rectangular 
+ for i = 1 : length(parallelCoup)
+     a = verticalCoup(i,:);
+     a = a(a~=0);
+     iters = length(a)/2;
+     for j = 1 : iters
+         a = [ parallelCoup(i,1) parallelCoup(i,2) a(ceil((j+1)/2)) a(ceil((j+2)/2))];
+         squareLines = [squareLines ; a ] ;
+     end
+ end
+         
+                
+% 
+% for i = 1 : size(squareLines,1)
+% k = [];
+%     for j = 1 : size(squareLines,2)
+%         k =[k ;[CornerLines(squareLines(i,j),1),CornerLines(squareLines(i,j),2)]];
+%         drawHoughLines(BW,k,rho,theBin);
+%     end
+% end
+%        
+ k = [];
+   for j = 1 : size(squareLines,2)
+         k =[k ;[CornerLines(squareLines(2,j),1),CornerLines(squareLines(2,j),2)]];
         
-     
-           
+   end
+  
+      drawHoughLines(BW,k,rho,theBin);
+  
+  p = [];
+ for i = 1:size(k,1)
+    rhoTemp = rho(k(i,1));
+    theTemp = theBin(k(i,2));
+    if theTemp == 0
+        x1 = rhoTemp;
+        x2 = rhoTemp;
+        y1 = 1;
+        y2 = size(BW,1);
+    else
+        x1 = 1;
+        x2 = size(BW,2);
+        y1 = (rhoTemp - x1*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
+        y2 = (rhoTemp - x2*cos(theTemp*pi/180)) / sin(theTemp*pi/180);
+    end
+    p = [p ; [x1 x2 y1 y2] ];
+    
+ end
+
+ lineIntersection = [];
+ for i = 1: length(p)
+     for j = 1 : length(p)
+         x1 = p(i,1);
+         x2 = p(i,2);
+         y1 = p(i,3);
+         y2 = p(i,4);
+         x3 = p(j,1);
+         x4 = p(j,2);
+         y3 = p(j,3);
+         y4 = p(j,4);
+         xy = [x1*y2-x2*y1,x3*y4-x4*y3]/[y2-y1,y4-y3;-(x2-x1),-(x4-x3)]
+         scatter(xy(1),xy(2),'*');
+         lineIntersection = [lineIntersection ; [ xy(1) xy(2)]] ; 
+     end
+ end
+
+ figure
+ imshow(BW);
+ hold on;
+ scatter(lineIntersection(:,1),lineIntersection(:,2),'*');
+        
+ 
+
      
 figure
 imshow(BW) 
 hold on 
 plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
-
 
 
 
@@ -201,7 +287,7 @@ function corners = myDetectHarrisFeatures(I)
    %Combinations of thresholding / n gives us the desired corners
    threshold = 0.003;
    %Use n if you want to specify the number of points 
-   n = 2532;
+    n = 5000;
    
    wb = waitbar(0, 'Calculating the Corners');
    for i = 2:imgH-1
@@ -276,8 +362,10 @@ peaks = myHoughPeaks(H,n);
 
 L = peaks ;
 %Thresholding the lines next to each other
-rhoThres = 0.008*max(rho(:))
-thetaThres = 0.03*max(theBin(:))
+%rhoThres = 0.011*max(rho(:));
+%thetaThres = 0.04*max(theBin(:));
+rhoThres = 10;
+thetaThres = 2;
 
 correctPeaks = 0 ; 
 totalIter = 0 ; 
