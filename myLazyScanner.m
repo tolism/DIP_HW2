@@ -13,12 +13,12 @@
 
 
 % Load image
-I = imread('im2.jpg');
+im = imread('im2.jpg');
 figure
-imshow(I)
+imshow(im)
 
 % Convert to grayscale and scale to [0,1]
-I = (rgb2gray(I));
+I = (rgb2gray(im));
 I=imresize(I,0.2);
 
 % Gaussian filter
@@ -137,7 +137,16 @@ squareLines = [];
          squareLines = [squareLines ; a];
      end
  end
-         
+ 
+ for i = 1 : size(squareLines,1)
+     if squareLines(i,2) == squareLines(i,3)
+         squareLines(i,1) =0;
+     end
+ end
+       
+%Fixing a bug 
+squareLines(squareLines (:, 1)== 0, :) = [] ; 
+
  %Calculate the Corner Distances 
   harrisCornerDistances = zeros(length(corners),1);
   for i = 1 : length(corners)
@@ -145,61 +154,72 @@ squareLines = [];
   end
   
   
-   %Auth h malakia tha epistrefei tis suntetagmenes apo ta corners gia to
- %ekastote orthogwnio pou vrike
- %Tha prepei na einai mesa se loop gia na vriskei ola ta pithana 
+
  
  %Ean o arithmos den einai 4 tha xreiastei montarisma
  CornersInside = zeros(size(squareLines,1),1);
-%  for i = 1 : size(squareLines,1)
-%      %Get the coordinates of the square's corners 
-%      corn = draw_calculate_interection( squareLines(i,:) , CornerLines , BW ,  rho , theBin   )
-%      if length(corn) == 4 
-%      dists = [];
-%      for k = 1 : length(corn)
-%        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
-%      end
-%      else
-%          %Code to process the lines
-%      end
-%      idL = find(dists==min(dists(:)));
-%      idH = find(dists==max(dists(:)));
-%      for j = 1 :  size(harrisCornerDistances,1) 
-%          if harrisCornerDistances(j) >= dists(idL) && harrisCornerDistances(j) <= dists(idH)
-%                CornersInside(i) = CornersInside(i) + 1 ;
-%          end
-%      end
-%  end
-%   im = imread('im2.jpg');
-%   %To find the non duplicated values        
-%  [~, ind] = unique(CornersInside(:, 1), 'rows');
-%  for i = 1 : size(ind)
-%      corn = [];
-%      corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   )
-%      dists = [];
-%      for k = 1 : length(corn)
-%        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
-%      end
-%     idL = find(dists==min(dists(:)));
-%     idH = find(dists==max(dists(:)));
-%     
-%     a = im(5*corn(idL,2) : 5*corn(idH,2) , 5*corn(idL,1) : 5*corn(idH,1 ), : );
-%     figure
-%     imshow(a);
-%     hold on
-%  end
-%      
+ for i = 1 : size(squareLines,1)
+     %Get the coordinates of the square's corners 
+     corn = draw_calculate_interection( squareLines(i,:) , CornerLines , BW ,  rho , theBin );
+     if length(corn)~= 0
+     if length(corn) == 4 
+
+     % plot(corn(:,1) , corn(:,2) , 'rs' );
+     dists = [];
+     for k = 1 : length(corn)
+       dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
+     end
+     else
+         %Code to process the lines
+         display("More than 4 corners ");
+         %Will need to do extra process 
+     end
+     idL = find(dists==min(dists(:)));
+     idH = find(dists==max(dists(:)));
+      for j = 1 :  size(corners,1) 
+          if  corners(j,2) > corn(idL,1) & corners(j,2) < corn(idH,1) & corners(j,1) > corn(idL,2) & corners(j,1) < corn(idH,2) 
+                CornersInside(i) = CornersInside(i) + 1 ;
+          end
+      end
+    end
+ end
+
+  %To find the non duplicated values   
+  stuff = 0 
+ [~, ind] = unique(CornersInside(:, 1), 'rows');
+ for i = 1 : size(ind)
+     if CornersInside(ind(i)) > 0.25*length(corners) 
+       stuff = stuff + 1 ;  
+     corn = [];
+     corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   )
+     dists = [];
+     for k = 1 : length(corn)
+       dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
+     end
+    idL = find(dists==min(dists(:)));
+    idH = find(dists==max(dists(:)));
+    
+    a = im(5*corn(idL,2) : 5*corn(idH,2) , 5*corn(idL,1) : 5*corn(idH,1 ), : );
+    figure
+    imshow(a);
+    hold on
+     
+     else
+         display("Not enough corner information isndie rectangular");
+ end
+ end
+     
  
   
-% 
-% figure
-% imshow(BW) 
-% hold on 
-% plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
+
+figure
+imshow(BW) 
+hold on 
+plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
 
 %Implementation of the function draw_calculate_interactions
 %It returns the cordinates of the corners of an image rectangular
- function corn = draw_calculate_interection( squareLines , CornerLines , BW ,  rho , theBin  )
+ function corn = draw_calculate_interection( squareLines , CornerLines , BW ,  rho , theBin , lineCorn  )
  for i = 1 : size(squareLines,1)
  k = [];
    for j = 1 : size(squareLines,2)
@@ -229,7 +249,11 @@ end
  end
 
  lineIntersection = [];
- length(p)
+%  length(p)
+%        figure
+%       title(i);
+%       imshow(BW) 
+%       hold on 
  for i = 1: length(p)
      for j = 1 : length(p)
          x1 = p(i,1);
@@ -240,18 +264,24 @@ end
          x4 = p(j,2);
          y3 = p(j,3);
          y4 = p(j,4);
-         xy = [x1*y2-x2*y1,x3*y4-x4*y3]/[y2-y1,y4-y3;-(x2-x1),-(x4-x3)]
-         scatter(xy(1),xy(2),'*');
+         xy = [x1*y2-x2*y1,x3*y4-x4*y3]/[y2-y1,y4-y3;-(x2-x1),-(x4-x3)];
+%          scatter(xy(1),xy(2),'*');
          if round(xy(1)) < size(BW,1) && xy(1) > 0 && xy(2) > 0  && round(xy(2)) < size(BW,1) 
-              lineIntersection = [lineIntersection ; [ round(xy(1)) round(xy(2))]] ; 
+  
+                     lineIntersection = [lineIntersection ; [ round(xy(1)) round(xy(2))]] ; 
+ 
+         end
+              
          end
         
-     end
-     
  end
- corn = lineIntersection(1:length(p) , :);
+     if length(p) ~= 0
+   corn = lineIntersection(1:length(p),:);
+      end
+
+ end
+
  
- end
 
 
 %Helper function to see if a point is in a specific line
