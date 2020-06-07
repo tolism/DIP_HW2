@@ -13,7 +13,7 @@
 
 
 % Load image
-im = imread('im2.jpg');
+im = imread('im1.jpg');
 figure
 imshow(im)
 
@@ -200,7 +200,7 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
      if CornersInside(ind(i)) > 0.25*length(corners)  && CornersInside(ind(i)) < 0.85*length(corners)
        stuff = stuff + 1 ;  
      corn = [];
-     corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   )
+     corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   );
      dists = [];
      for k = 1 : length(corn)
        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
@@ -285,8 +285,12 @@ end
          end
         
  end
-     
-   corn = lineIntersection;
+     if length(p) ~= 0 
+   corn = lineIntersection(1:length(p),:);
+     else
+         corn = [];
+     end
+  
       
 
  end
