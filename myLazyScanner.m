@@ -1,3 +1,17 @@
+% 
+%   FILE: deliverable_1.m
+%   THMMY, 8th semester, Digital Image Process Processing
+%   Hough Transform Implementation
+%   Author:
+%     Moustaklis Apostolos, 9127, amoustakl@auth.gr
+%   As it's name , just  a scanner for the lazy guys 
+%   Change the input picture and the script will find 
+%   the number of the photos  
+%   Crop them
+%   And save them as seperate files 
+
+
+
 % Load image
 I = imread('im2.jpg');
 figure
@@ -46,6 +60,7 @@ y = [];
 linesArray = [];
 p = [];
 
+%Calculating the corners that lay at the lines
  for  i = 1:size(L,1)
     
      for j = 1 : size(corners,1)
@@ -58,41 +73,20 @@ p = [];
          if floor(abs(k)) < Limit
              pointsPerLine(i) = pointsPerLine(i) + 1 ;
              c = [corners(j,1) corners(j,2) ];
-    %         x = [x corners(j,1) ];
-     %        y = [y corners(j,2) ];
-             lineCorn = [lineCorn; c ] ;
+             lineCorn = [lineCorn; c ];
          end    
-     end
-    % [p, S, mu] = polyfit(y , x , 1 );
-     %    linesArray = [ linesArray ; p] ;
-      %   x =[];
-       %  y = [];
-        % p1 = [];
-     
+     end  
  end
- %linesArray(isnan(linesArray(:, 1)), :) = [] ; 
+
  
  size(lineCorn);
- 
+ %Thresholding
  CornerLines = L;
  [rows,cols] = find(pointsPerLine <= 22);
  %To find which lines contain corners
  CornerLines(rows(:),cols(:)) = 0;
  CornerLines(CornerLines(:, 1)== 0, :) = [] ; 
 
- 
- %%%%%%%%%%%% CORNERLINES ==  r , è of the lines that pass through corners
- %%%%%%%%%%%% LINECORN == The cords of the corner that fit lines
-% for i = 1 : length(CornerLines)
-%     k = [CornerLines(i,1) CornerLines(i,2) ] ;
-%     drawHoughLines(BW,k,rho,theBin);
-% end
-
-
-
-
-        
- 
  areParallel =  zeros(size(CornerLines,1) , size(CornerLines,1)) ;
  areVertical =  zeros(size(CornerLines,1) , size(CornerLines,1)) ;
  
@@ -100,7 +94,7 @@ p = [];
  for i = 1 : length(CornerLines)
      for j = 1 : length(CornerLines)
          %Parallel Check
-         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j
+         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j  % && abs(CornerLines(i,1) - CornerLines(j,1)) < 0.48*max(d)
              areParallel(i,j) = 1;
         
          end
@@ -122,8 +116,8 @@ p = [];
          end       
      end
  end
- 
  verticalCoup = zeros(length(parallelCoup) , length(CornerLines)) ;
+ 
 %Find the vertical lines to the parallel's that we calculated
  for i = 1 : length(parallelCoup)
      for j = 1 : length(CornerLines)
@@ -140,27 +134,80 @@ squareLines = [];
      iters = length(a)/2;
      for j = 1 : iters
          a = [ parallelCoup(i,1) parallelCoup(i,2) a(ceil((j+1)/2)) a(ceil((j+2)/2))];
-         squareLines = [squareLines ; a ] ;
+         squareLines = [squareLines ; a];
      end
  end
          
-                
+ %Calculate the Corner Distances 
+  harrisCornerDistances = zeros(length(corners),1);
+  for i = 1 : length(corners)
+       harrisCornerDistances(i) = sqrt( corners(i,1)^2 + corners(i,2));
+  end
+  
+  
+   %Auth h malakia tha epistrefei tis suntetagmenes apo ta corners gia to
+ %ekastote orthogwnio pou vrike
+ %Tha prepei na einai mesa se loop gia na vriskei ola ta pithana 
+ 
+ %Ean o arithmos den einai 4 tha xreiastei montarisma
+ CornersInside = zeros(size(squareLines,1),1);
+%  for i = 1 : size(squareLines,1)
+%      %Get the coordinates of the square's corners 
+%      corn = draw_calculate_interection( squareLines(i,:) , CornerLines , BW ,  rho , theBin   )
+%      if length(corn) == 4 
+%      dists = [];
+%      for k = 1 : length(corn)
+%        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
+%      end
+%      else
+%          %Code to process the lines
+%      end
+%      idL = find(dists==min(dists(:)));
+%      idH = find(dists==max(dists(:)));
+%      for j = 1 :  size(harrisCornerDistances,1) 
+%          if harrisCornerDistances(j) >= dists(idL) && harrisCornerDistances(j) <= dists(idH)
+%                CornersInside(i) = CornersInside(i) + 1 ;
+%          end
+%      end
+%  end
+%   im = imread('im2.jpg');
+%   %To find the non duplicated values        
+%  [~, ind] = unique(CornersInside(:, 1), 'rows');
+%  for i = 1 : size(ind)
+%      corn = [];
+%      corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   )
+%      dists = [];
+%      for k = 1 : length(corn)
+%        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
+%      end
+%     idL = find(dists==min(dists(:)));
+%     idH = find(dists==max(dists(:)));
+%     
+%     a = im(5*corn(idL,2) : 5*corn(idH,2) , 5*corn(idL,1) : 5*corn(idH,1 ), : );
+%     figure
+%     imshow(a);
+%     hold on
+%  end
+%      
+ 
+  
 % 
-% for i = 1 : size(squareLines,1)
-% k = [];
-%     for j = 1 : size(squareLines,2)
-%         k =[k ;[CornerLines(squareLines(i,j),1),CornerLines(squareLines(i,j),2)]];
-%         drawHoughLines(BW,k,rho,theBin);
-%     end
-% end
-%        
+% figure
+% imshow(BW) 
+% hold on 
+% plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
+
+%Implementation of the function draw_calculate_interactions
+%It returns the cordinates of the corners of an image rectangular
+ function corn = draw_calculate_interection( squareLines , CornerLines , BW ,  rho , theBin  )
+ for i = 1 : size(squareLines,1)
  k = [];
    for j = 1 : size(squareLines,2)
-         k =[k ;[CornerLines(squareLines(2,j),1),CornerLines(squareLines(2,j),2)]];
-        
+         k =[k ;[CornerLines(squareLines(i,j),1),CornerLines(squareLines(i,j),2)]];   
    end
-  
-      drawHoughLines(BW,k,rho,theBin);
+  %drawHoughLines(BW,k,rho,theBin);
+end
+      
   
   p = [];
  for i = 1:size(k,1)
@@ -182,6 +229,7 @@ squareLines = [];
  end
 
  lineIntersection = [];
+ length(p)
  for i = 1: length(p)
      for j = 1 : length(p)
          x1 = p(i,1);
@@ -194,27 +242,19 @@ squareLines = [];
          y4 = p(j,4);
          xy = [x1*y2-x2*y1,x3*y4-x4*y3]/[y2-y1,y4-y3;-(x2-x1),-(x4-x3)]
          scatter(xy(1),xy(2),'*');
-         lineIntersection = [lineIntersection ; [ xy(1) xy(2)]] ; 
+         if round(xy(1)) < size(BW,1) && xy(1) > 0 && xy(2) > 0  && round(xy(2)) < size(BW,1) 
+              lineIntersection = [lineIntersection ; [ round(xy(1)) round(xy(2))]] ; 
+         end
+        
      end
+     
+ end
+ corn = lineIntersection(1:length(p) , :);
+ 
  end
 
- figure
- imshow(BW);
- hold on;
- scatter(lineIntersection(:,1),lineIntersection(:,2),'*');
-        
- 
 
-     
-figure
-imshow(BW) 
-hold on 
-plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
-
-
-
-
-
+%Helper function to see if a point is in a specific line
 function R = IsPointWithinLine(x1, y1, x2, y2, x3, y3)
 % Line equation: y = m*x + b;
 Limit = 100 * eps(max(abs([x1,y1,x2,y2,x3,y3])));
@@ -228,18 +268,8 @@ else
 end
 end
 
-function val = isPar2(line2Check , verticalArray)
-val = [];
-for i = 1: length(verticalArray)
-    if line2Check == verticalArray(i,1)
-        temp = verticalArray(i,2);
-        val = [val ; temp];
-    end
-end
 
-
-end
-
+%Helper function to find local maxima
 function flag = isLocalMax(patch)
     pCenter = (size(patch,1)+1)/2;
      [rows,cols] = find(patch == max(patch(:)));
@@ -252,6 +282,8 @@ function flag = isLocalMax(patch)
      end
 end
 
+%Function that detects the Harris Corners
+%Returns the cords of the corners in the image I
 function corners = myDetectHarrisFeatures(I)
 
    %The s of the gaussian
@@ -307,7 +339,8 @@ function corners = myDetectHarrisFeatures(I)
     size(corners)
 end 
 
-
+%Function that performs the Hough Transform
+%Returns H array , L with the n peaks and the resolution 
 function [H,L,res] = myHoughTransform(img_binary, Drho, Drtheta , n )
 
 I= img_binary;
@@ -362,10 +395,10 @@ peaks = myHoughPeaks(H,n);
 
 L = peaks ;
 %Thresholding the lines next to each other
-%rhoThres = 0.011*max(rho(:));
-%thetaThres = 0.04*max(theBin(:));
-rhoThres = 10;
-thetaThres = 2;
+rhoThres = 0.006*max(rho(:));
+thetaThres = 0.02*max(theBin(:))
+%rhoThres = 10;
+%thetaThres = 2;
 
 correctPeaks = 0 ; 
 totalIter = 0 ; 
@@ -406,7 +439,7 @@ saveas(gcf,'test.png')
 
 end
 
-
+%Helper function used to ploot the lines given peaks 
 function drawHoughLines(img,peaks,rho,theBin)
 %Plot the photo and hold on
 figure()
@@ -435,7 +468,7 @@ hold on;
 
 end
 
-
+%Helper function to calculate the Hough Transform Peaks
 function peaks = myHoughPeaks(H,numPeaks)
 
    numPeaks = numPeaks * numPeaks 
@@ -474,4 +507,3 @@ function peaks = myHoughPeaks(H,numPeaks)
    % return updated peaks matrix
    peaks = peaks(1:numP,:);
 end
-
