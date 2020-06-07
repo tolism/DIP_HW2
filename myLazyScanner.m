@@ -94,7 +94,7 @@ p = [];
  for i = 1 : length(CornerLines)
      for j = 1 : length(CornerLines)
          %Parallel Check
-         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j  % && abs(CornerLines(i,1) - CornerLines(j,1)) < 0.48*max(d)
+         if  abs(CornerLines(i,2) - CornerLines(j,2)) < 2  && i ~= j   &&  abs(CornerLines(i,1) - CornerLines(j,1)) > 0.2*d
              areParallel(i,j) = 1;
         
          end
@@ -163,6 +163,7 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
      corn = draw_calculate_interection( squareLines(i,:) , CornerLines , BW ,  rho , theBin );
      if length(corn)~= 0
      if length(corn) == 4 
+         corn
 
      % plot(corn(:,1) , corn(:,2) , 'rs' );
      dists = [];
@@ -170,6 +171,10 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
      end
      else
+         figure
+         imshow(BW);
+         hold on 
+         plot(corn(:,1) , corn(:,2) , 'rs' );
          %Code to process the lines
          display("More than 4 corners ");
          %Will need to do extra process 
@@ -188,7 +193,11 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
   stuff = 0 
  [~, ind] = unique(CornersInside(:, 1), 'rows');
  for i = 1 : size(ind)
-     if CornersInside(ind(i)) > 0.25*length(corners) 
+     %Threshold to avoid getting very small areas or very big that will
+     %lead to get 
+     % 1) Empty small rectangular's
+     % 2) Big array that may contain more than one photos 
+     if CornersInside(ind(i)) > 0.25*length(corners)  && CornersInside(ind(i)) < 0.85*length(corners)
        stuff = stuff + 1 ;  
      corn = [];
      corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   )
@@ -198,6 +207,7 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
      end
     idL = find(dists==min(dists(:)));
     idH = find(dists==max(dists(:)));
+    
     
     a = im(5*corn(idL,2) : 5*corn(idH,2) , 5*corn(idL,1) : 5*corn(idH,1 ), : );
     figure
@@ -275,9 +285,9 @@ end
          end
         
  end
-     if length(p) ~= 0
-   corn = lineIntersection(1:length(p),:);
-      end
+     
+   corn = lineIntersection;
+      
 
  end
 
