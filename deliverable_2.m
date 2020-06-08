@@ -9,26 +9,24 @@
 
 
 % Load image
-I = imread('test.png');
+I = imread('im2.jpg');
 %figure
 %imshow(I)
 
 % Convert to grayscale and scale to [0,1]
 I = rgb2gray(I);
 I = I/max(I(:));
-%I=imresize(I,0.2);
+I=imresize(I,0.2);
 
-%I  = imread('1.jpg');
-%I = rgb2gray(I);
-%size(I)
-corners1 = detectHarrisFeatures(I);
-figure
-imshow(I);
-hold on
-plot(corners1);
-display('Arithmos corners apo thn ahdia');
-size(corners1.Location)
-hold off
+
+% corners1 = detectHarrisFeatures(I);
+% figure
+% imshow(I);
+% hold on
+% plot(corners1);
+% title('Matlabs Harris Corner');
+% size(corners1.Location)
+% hold off
 
 
 corners = myDetectHarrisFeatures(I);
@@ -37,6 +35,7 @@ figure
 imshow(I) 
 hold on 
 plot(corners(:,2) , corners(:,1) , 'rs' );
+title('My Harris Corner');
 
 %Helper Function to find if a point is Local Maxima
 function flag = isLocalMax(patch)
@@ -87,7 +86,7 @@ function corners = myDetectHarrisFeatures(I)
    %Combinations of thresholding / n gives us the desired corners
    threshold = 0.05;
    %Use n if you want to specify the number of points 
-  %n = 5000;
+    %n = 5000;
    
    
    wb = waitbar(0, 'Calculating the Corners');

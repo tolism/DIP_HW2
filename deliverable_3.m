@@ -17,7 +17,7 @@ I=imresize(I,0.2);
 %imshow(J)
 
 
-rotImg  =  myImgRotation(I,253*pi/180);
+rotImg  =  myImgRotation(I,213*pi/180);
 figure
 imshow(rotImg);
 

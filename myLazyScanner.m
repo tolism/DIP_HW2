@@ -13,13 +13,15 @@
 
 
 % Load image
-im = imread('im1.jpg');
+imageName = 'im2.jpg';
+im = imread(imageName);
 figure
 imshow(im)
 
 % Convert to grayscale and scale to [0,1]
 I = (rgb2gray(im));
-I=imresize(I,0.2);
+rs = 0.2;
+I=imresize(I,rs);
 
 % Gaussian filter
 I = imgaussfilt(I, 4.6);
@@ -34,7 +36,7 @@ imshow(BW)
 thetaRes = pi/180;
 rhoRes = 1; 
 [H,L,res] = myHoughTransform(BW, rhoRes, thetaRes , 12);
-%I = imread('im2.jpg');
+
 
 d = sqrt(size(BW,1)^2 + size(BW,2)^2);
 
@@ -44,12 +46,6 @@ theBin = -90:Drtheta:90;
 
 
 
-
-%drawHoughLines(I,L,rho,theBin);
-%saveas(gcf,'test.png')
-
-%I = imread('test.png');
-%I = rgb2gray(I);
 corners = myDetectHarrisFeatures( BW);
 lineCorn = [];
 pointsPerLine = zeros(size(L,1),1) ;
@@ -105,7 +101,6 @@ p = [];
      end
  end
  
- %Isws thn kanw kai auth thn maska me plires diastaseis kai pairnw meta
  parallelCoup = [];
  %Find the Parallel Lines
  for i = 1 : length(CornerLines)
@@ -154,51 +149,49 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
   end
   
   
-
  
- %Ean o arithmos den einai 4 tha xreiastei montarisma
  CornersInside = zeros(size(squareLines,1),1);
  for i = 1 : size(squareLines,1)
      %Get the coordinates of the square's corners 
      corn = draw_calculate_interection( squareLines(i,:) , CornerLines , BW ,  rho , theBin );
-     if length(corn)~= 0
      if length(corn) == 4 
-         corn
+         corn;
 
-     % plot(corn(:,1) , corn(:,2) , 'rs' );
      dists = [];
      for k = 1 : length(corn)
        dists =[dists ; sqrt( corn(k,1)^2 + corn(k,2))];
      end
-     else
-         figure
-         imshow(BW);
-         hold on 
-         plot(corn(:,1) , corn(:,2) , 'rs' );
-         %Code to process the lines
-         display("More than 4 corners ");
-         %Will need to do extra process 
+     flag = 1 ;
+     elseif length(corn) > 4 
+       %Will need to do extra process 
+       %In order to get the correct rectangular 
+       % Tried to implement isRect but it's not finished
      end
      idL = find(dists==min(dists(:)));
      idH = find(dists==max(dists(:)));
+     if flag 
       for j = 1 :  size(corners,1) 
           if  corners(j,2) > corn(idL,1) & corners(j,2) < corn(idH,1) & corners(j,1) > corn(idL,2) & corners(j,1) < corn(idH,2) 
                 CornersInside(i) = CornersInside(i) + 1 ;
           end
       end
-    end
+     end
+  flag = 0;
+   
  end
+ 
+
 
   %To find the non duplicated values   
-  stuff = 0 
+  picturesFound = 0; 
  [~, ind] = unique(CornersInside(:, 1), 'rows');
  for i = 1 : size(ind)
      %Threshold to avoid getting very small areas or very big that will
      %lead to get 
      % 1) Empty small rectangular's
      % 2) Big array that may contain more than one photos 
-     if CornersInside(ind(i)) > 0.25*length(corners)  && CornersInside(ind(i)) < 0.85*length(corners)
-       stuff = stuff + 1 ;  
+     if CornersInside(ind(i)) > 0.25*length(corners)  && CornersInside(ind(i)) < 0.75*length(corners)
+       picturesFound = picturesFound + 1 ;  
      corn = [];
      corn = draw_calculate_interection( squareLines(ind(i),:) , CornerLines , BW ,  rho , theBin   );
      dists = [];
@@ -208,28 +201,64 @@ squareLines(squareLines (:, 1)== 0, :) = [] ;
     idL = find(dists==min(dists(:)));
     idH = find(dists==max(dists(:)));
     
-    
-    a = im(5*corn(idL,2) : 5*corn(idH,2) , 5*corn(idL,1) : 5*corn(idH,1 ), : );
-    figure
-    imshow(a);
-    hold on
+     a = imageName(1:3);
+     b = int2str(picturesFound);
+     str = [a '_' b];
+     pritxt = join(str);
+     c ='.jpg';
+     str = [pritxt c];
+     pritxt = join(str);
+     croppedImage = im((1/rs)*corn(idL,2) : (1/rs)*corn(idH,2) , (1/rs)*corn(idL,1) : (1/rs)*corn(idH,1 ), : );
+    FileName = sprintf(pritxt);
+    fullFileName = fullfile(pwd,FileName);
+    imwrite(croppedImage, fullFileName);
      
      else
-         display("Not enough corner information isndie rectangular");
+         disp("Not enough corner information isndie rectangular");
  end
  end
      
- 
+ disp("Image found " + picturesFound);
   
-
 figure
 imshow(BW) 
 hold on 
 plot(lineCorn(:,2) , lineCorn(:,1) , 'rs' );
 
+
+%Helper Function Given a set of points
+%Finds a rectangular
+function isRect = recta(cornSeT)
+starting1 = cornSeT(end,1);
+starting2 = cornSeT(end,2);
+flag = 0;
+isRect = [];
+  while 1
+      if cornSeT(1,1) == starting1 && cornSeT(1,2) == starting2
+          break;
+      else
+          cx=(cornSeT(1,1)+cornSeT(2,1)+cornSeT(3,1)+cornSeT(4,1))/4;
+          cy=(cornSeT(1,2)+cornSeT(2,2)+cornSeT(3,2)+cornSeT(4,2))/4;
+          dd1=sqrt((cx-cornSeT(1,1))^2 +(cy-cornSeT(1,2))^2);
+          dd2=sqrt((cx-cornSeT(2,1))^2 +(cy-cornSeT(2,2))^2);
+          dd3=sqrt((cx-cornSeT(3,1))^2 +(cy-cornSeT(3,2))^2);
+          dd4=sqrt((cx-cornSeT(4,1))^2 +(cy-cornSeT(4,2))^2);
+  if  dd1-dd2< 5 && dd1-dd3  <5 && dd1 - dd4 < 5 
+      isRect= [ cornSeT(1,1) cornSeT(1,2);  cornSeT(2,1) cornSeT(2,2) ; cornSeT(3,1) cornSeT(3,2) ; cornSeT(4,1) cornSeT(4,2)] ;
+      break;
+  else
+      temp = cornSeT(1,:);
+      cornSeT(1,:)= [];
+      cornSeT = [cornSeT ; temp ];
+  end
+      
+      end
+  end
+end
+
 %Implementation of the function draw_calculate_interactions
 %It returns the cordinates of the corners of an image rectangular
- function corn = draw_calculate_interection( squareLines , CornerLines , BW ,  rho , theBin , lineCorn  )
+ function corn = draw_calculate_interection( squareLines , CornerLines , BW ,  rho , theBin  )
  for i = 1 : size(squareLines,1)
  k = [];
    for j = 1 : size(squareLines,2)
@@ -259,11 +288,7 @@ end
  end
 
  lineIntersection = [];
-%  length(p)
-%        figure
-%       title(i);
-%       imshow(BW) 
-%       hold on 
+
  for i = 1: length(p)
      for j = 1 : length(p)
          x1 = p(i,1);
@@ -275,7 +300,7 @@ end
          y3 = p(j,3);
          y4 = p(j,4);
          xy = [x1*y2-x2*y1,x3*y4-x4*y3]/[y2-y1,y4-y3;-(x2-x1),-(x4-x3)];
-%          scatter(xy(1),xy(2),'*');
+         scatter(xy(1),xy(2),'*');
          if round(xy(1)) < size(BW,1) && xy(1) > 0 && xy(2) > 0  && round(xy(2)) < size(BW,1) 
   
                      lineIntersection = [lineIntersection ; [ round(xy(1)) round(xy(2))]] ; 
@@ -285,19 +310,21 @@ end
          end
         
  end
-     if length(p) ~= 0 
-   corn = lineIntersection(1:length(p),:);
-     else
-         corn = [];
-     end
-  
+corn = lineIntersection;
+
+  for i = 1: size(corn,1)
+      for j = 1: size(corn,1)
+          if corn(i,1) == corn(j,1) && corn(i,2) == corn(j,2) && i~=j
+              corn(i,1) = - 1;
+          end
+      end
+  end
+  corn(corn(:, 1)== -1, :) = [] ; 
       
 
  end
 
  
-
-
 %Helper function to see if a point is in a specific line
 function R = IsPointWithinLine(x1, y1, x2, y2, x3, y3)
 % Line equation: y = m*x + b;
@@ -440,7 +467,7 @@ peaks = myHoughPeaks(H,n);
 L = peaks ;
 %Thresholding the lines next to each other
 rhoThres = 0.006*max(rho(:));
-thetaThres = 0.02*max(theBin(:))
+thetaThres = 0.02*max(theBin(:));
 %rhoThres = 10;
 %thetaThres = 2;
 
@@ -463,10 +490,8 @@ totalIter = 0 ;
                continue;
            end
          end       
-    end
-totalIter       
+    end    
 L(L(:, 1)== 0, :) = [] ; 
-%L(totalIter : end , : ) = [] ;
 length(L)
  L(n+1 : end , : ) = [] ;
 res = [];
@@ -515,7 +540,7 @@ end
 %Helper function to calculate the Hough Transform Peaks
 function peaks = myHoughPeaks(H,numPeaks)
 
-   numPeaks = numPeaks * numPeaks 
+   numPeaks = numPeaks * numPeaks ;
 % Copy H into HCopy
     HCopy = H;
     %Initiate peaks matrix
